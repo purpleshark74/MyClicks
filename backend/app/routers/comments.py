@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.models.comment import Comment
@@ -11,10 +11,10 @@ router = APIRouter(
 )
 
 @router.post("/add/{photo_id}")
-def add_comment(photo_id: int, request: Request, text: str, db: Session = Depends(get_db())):
+def add_comment(photo_id: int, request: Request, text: str, db: Session = Depends(get_db)):
     ip = request.client.host
 
-    ten_seconds_ago = datetime.now(datetime.timezone.utc) - timedelta(seconds=10)
+    ten_seconds_ago = datetime.now(timezone.utc) - timedelta(seconds=10)
     recent_comment = (
         db.query(Comment)
         .filter(Comment.ip_address == ip)
@@ -25,7 +25,7 @@ def add_comment(photo_id: int, request: Request, text: str, db: Session = Depend
     if recent_comment:
         raise HTTPException(status_code=429, detail="You are commenting too fast. Please wait a moment")
 
-    one_hour_ago = datetime.now(datetime.timezone.utc) - timedelta(hours=1)
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     hourly_count = (
         db.query(Comment)
         .filter(Comment.ip_address == ip)
@@ -49,7 +49,7 @@ def add_comment(photo_id: int, request: Request, text: str, db: Session = Depend
     return {"message": "comment added", "id": comment.id}
 
 @router.get("/{photo_id}")
-def get_comments(photo_id: int, db: Session = Depends(get_db())):
+def get_comments(photo_id: int, db: Session = Depends(get_db)):
     comments = (
         db.query(Comment)
         .filter(Comment.photo_id == photo_id)
